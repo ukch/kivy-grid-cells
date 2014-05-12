@@ -1,0 +1,12 @@
+#:kivy 1.8.0
+
+<DrawableGrid>:
+    size: self.cols_adjusted, self.rows_adjusted
+
+<GridCell>:
+    canvas:
+        Color:
+            rgba: self.colour
+        Rectangle:
+            pos: self.pos
+            size: self.size
