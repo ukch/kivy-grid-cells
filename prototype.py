@@ -21,9 +21,15 @@ from kivy.properties import (
 )
 
 
-# TODO move to constants module
-ACTIVATE = "Activate"
-DEACTIVATE = "Deactivate"
+class State(object):
+    DEACTIVATED = 0
+    ACTIVATED = 1
+
+    @classmethod
+    def get(cls, active):
+        if active:
+            return cls.ACTIVATED
+        return cls.DEACTIVATED
 
 class Colours(object):
     ACTIVATED = (1, 1, 1, 1)
@@ -51,24 +57,32 @@ class GridCell(Widget):
         self.colour = (Colours.ACTIVATED if self.active
                        else Colours.DEACTIVATED)
 
+    def update_parent_cell(self):
+        self.parent.update_cells(self.coordinates, State.get(self.active))
+
     def activate(self):
         self.active = True
         self.update_canvas()
+        self.update_parent_cell()
 
     def deactivate(self):
         self.active = False
         self.update_canvas()
+        self.update_parent_cell()
+
+    def handle_touch(self):
+        if self.active:
+            self.deactivate()
+            log.info("Deactivated {}".format(self))
+        else:
+            self.activate()
+            log.info("Activated {}".format(self))
 
     def on_touch_down(self, evt):
         if not self.collide_point(*evt.pos):
             # Not on this square
             return
-        if self.active:
-            self.deactivate()
-            print "Deactivated {}".format(self)
-        else:
-            self.activate()
-            print "Activated {}".format(self)
+        self.handle_touch()
 
     def on_touch_move(self, evt):
         if not self.collide_point(*evt.pos):
@@ -77,12 +91,12 @@ class GridCell(Widget):
         if self.collide_point(*evt.ppos):
             # Not moved to this square
             return
-        drag_state = DEACTIVATE if self.active else ACTIVATE
+        drag_state = State.ACTIVATED if self.active else State.DEACTIVATED
         if self.parent.drag_state is None:
             self.parent.drag_state = drag_state
         elif self.parent.drag_state != drag_state:
             return
-        return self.on_touch_down(evt)
+        self.handle_touch()
 
     def on_touch_up(self, evt):
         if self.parent.drag_state is not None:
@@ -120,6 +134,9 @@ class DrawableGrid(RelativeLayout):
             for row in self.cell_widgets:
                 for cell in row:
                     self.add_widget(cell)
+
+    def update_cells(self, coordinates, state):
+        self.cells[coordinates] = state
 
     @property
     def rows_adjusted(self):
