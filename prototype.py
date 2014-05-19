@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 import logging as log # TODO proper logger config
 
 import numpy as np
@@ -60,15 +61,19 @@ class GridCell(Widget):
     def update_parent_cell(self):
         self.parent.update_cells(self.coordinates, State.get(self.active))
 
-    def activate(self):
-        self.active = True
+    def set_state(self, state):
+        if state == State.ACTIVATED:
+            self.active = True
+        else: # For now, assume only two states
+            self.active = False
         self.update_canvas()
         self.update_parent_cell()
 
+    def activate(self):
+        self.set_state(State.ACTIVATED)
+
     def deactivate(self):
-        self.active = False
-        self.update_canvas()
-        self.update_parent_cell()
+        self.set_state(State.DEACTIVATED)
 
     def handle_touch(self):
         if self.active:
@@ -116,11 +121,12 @@ class DrawableGrid(RelativeLayout):
     def __init__(self, *args, **kwargs):
         super(DrawableGrid, self).__init__(*args, **kwargs)
 
-        self._setup_cells()
-        self.cells = np.zeros(dtype=int, shape=(self.cols, self.rows))
+        self._setup_cell_widgets()
+        self._cells = np.zeros(dtype=int, shape=(self.cols, self.rows))
+        self._cells.setflags(write=False)
         self.drag_state = None
 
-    def _setup_cells(self):
+    def _setup_cell_widgets(self):
         self.cell_widgets = []
         for row_number in xrange(self.rows):
             row = []
@@ -135,8 +141,46 @@ class DrawableGrid(RelativeLayout):
                 for cell in row:
                     self.add_widget(cell)
 
+    @property
+    @contextmanager
+    def writable_cells(self):
+        """Set self._cells to be writable, then unset it"""
+        try:
+            self._cells.setflags(write=True)
+            yield
+        finally:
+            self._cells.setflags(write=False)
+            return
+
     def update_cells(self, coordinates, state):
-        self.cells[coordinates] = state
+        with self.writable_cells:
+            self._cells[coordinates] = state
+
+    def update_cell_widgets(self):
+        cells = self.cells
+        for x, row in enumerate(self.cell_widgets):
+            for y, cell in enumerate(row):
+                cell.set_state(cells[y, x])
+
+    @property
+    def cells(self):
+        return self._cells
+
+    @cells.setter
+    def cells(self, cells):
+        """
+        Cell values can be set here. This will update the related widgets.
+        """
+        if hasattr(cells, "copy"):
+            # Assume cells is a numpy array
+            cells = cells.copy()
+        else:
+            cells = np.array(cells)
+        cells.setflags(write=False)
+        assert cells.shape == self._cells.shape, "{} != {}".format(
+            cells.shape, self._cells.shape)
+        self._cells = cells
+        self.update_cell_widgets()
 
     @property
     def rows_adjusted(self):
