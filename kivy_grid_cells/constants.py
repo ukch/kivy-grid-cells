@@ -13,5 +13,5 @@ class States(object):
 Colours = {
     States.DEACTIVATED: (0.5, 0.5, 0.5, 1),
     States.FIRST: (1, 1, 1, 1),
-    States.SECOND: (0, 0, 0, 0),
+    States.SECOND: (0, 0, 0, 1),
 }
