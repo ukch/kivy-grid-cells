@@ -53,10 +53,10 @@ class GridCell(Widget):
         log.debug("Set state of {} to {}".format(self, state))
 
     def handle_touch(self):
-        if self.state is States.DEACTIVATED:
-            new_state = self.parent.selected_state
-        else:
+        if self.state == self.parent.selected_state:
             new_state = States.DEACTIVATED
+        else:
+            new_state = self.parent.selected_state
         self.set_state(new_state)
 
     def on_touch_down(self, evt):
@@ -72,10 +72,12 @@ class GridCell(Widget):
         if self.collide_point(*evt.ppos):
             # Not moved to this square
             return
-        drag_state = "off" if self.state == States.DEACTIVATED else "on"
         if self.parent.drag_state is None:
-            self.parent.drag_state = drag_state
-        elif self.parent.drag_state != drag_state:
+            self.parent.drag_state = (
+                self.parent.selected_state
+                if self.state == States.DEACTIVATED else States.DEACTIVATED
+            )
+        elif self.parent.drag_state == self.state:
             return
         self.handle_touch()
 
