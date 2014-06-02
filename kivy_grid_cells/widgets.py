@@ -103,7 +103,11 @@ class DrawableGrid(RelativeLayout):
 
     def __init__(self, *args, **kwargs):
         super(DrawableGrid, self).__init__(*args, **kwargs)
+        self._cells = None
 
+    def init_cells(self):
+        if self._cells is not None:
+            raise RuntimeError("Cells already initialised!")
         self._setup_cell_widgets()
         self._cells = np.zeros(dtype=int, shape=(self.cols, self.rows))
         self._cells.setflags(write=False)

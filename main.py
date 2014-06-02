@@ -22,6 +22,7 @@ class GridPrototype(App):
             self.grid.center = self.root.center
 
         Window.bind(on_resize=refresh_grid_position)
+        self.grid.init_cells()
         refresh_grid_position()
 
 
