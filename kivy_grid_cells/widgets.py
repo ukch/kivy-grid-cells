@@ -1,40 +1,23 @@
-from contextlib import contextmanager
-import logging as log # TODO proper logger config
-
-import numpy as np
-
 import kivy
 kivy.require('1.8.0')
 
-from kivy.core.window import Window
-from kivy.app import App
-from kivy.config import Config
-from kivy.uix.widget import Widget
-from kivy.uix.relativelayout import RelativeLayout
-from kivy.uix.floatlayout import FloatLayout
+from contextlib import contextmanager
+import logging
 
 from kivy.properties import (
     NumericProperty,
-    ObjectProperty,
     ListProperty,
-    ReferenceListProperty,
     BooleanProperty,
 )
+from kivy.uix.relativelayout import RelativeLayout
+from kivy.uix.widget import Widget
+import numpy as np
 
+from .constants import Colours, State
 
-class State(object):
-    DEACTIVATED = 0
-    ACTIVATED = 1
+log = logging.getLogger(__name__)
 
-    @classmethod
-    def get(cls, active):
-        if active:
-            return cls.ACTIVATED
-        return cls.DEACTIVATED
-
-class Colours(object):
-    ACTIVATED = (1, 1, 1, 1)
-    DEACTIVATED = (0.5, 0.5, 0.5, 1)
+__all__ = ["GridCell", "DrawableGrid"]
 
 
 class GridCell(Widget):
@@ -64,7 +47,7 @@ class GridCell(Widget):
     def set_state(self, state):
         if state == State.ACTIVATED:
             self.active = True
-        else: # For now, assume only two states
+        else:  # For now, assume only two states
             self.active = False
         self.update_canvas()
         self.update_parent_cell()
@@ -189,24 +172,3 @@ class DrawableGrid(RelativeLayout):
     @property
     def cols_adjusted(self):
         return self.cols * self.cell_size
-
-
-class GridPrototype(App):
-
-    def build(self):
-        self.root = FloatLayout()
-        self.grid = DrawableGrid(rows=10, cols=15, size_hint=(None, None))
-        self.root.add_widget(self.grid)
-        return self.root
-
-    def on_start(self):
-        # TODO can we calculate this in the kv file?
-        def refresh_grid_position(*args):
-            self.grid.center = self.root.center
-
-        Window.bind(on_resize=refresh_grid_position)
-        refresh_grid_position()
-
-
-if __name__ == '__main__':
-    GridPrototype().run()
