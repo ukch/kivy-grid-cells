@@ -13,7 +13,7 @@ from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.widget import Widget
 import numpy as np
 
-from .constants import Colours, State
+from .constants import Colours, States
 
 log = logging.getLogger(__name__)
 
@@ -22,8 +22,8 @@ __all__ = ["GridCell", "DrawableGrid"]
 
 class GridCell(Widget):
 
-    active = BooleanProperty(False)
-    colour = ListProperty(Colours.DEACTIVATED)
+    state = NumericProperty(States.DEACTIVATED)
+    colour = ListProperty(Colours[States.DEACTIVATED])
 
     def __init__(self, cell_size, coordinates):
         self.coordinates = coordinates
@@ -38,33 +38,26 @@ class GridCell(Widget):
         self.update_canvas()
 
     def update_canvas(self):
-        self.colour = (Colours.ACTIVATED if self.active
-                       else Colours.DEACTIVATED)
+        self.colour = (Colours.get(self.state))
 
     def update_parent_cell(self):
-        self.parent.update_cells(self.coordinates, State.get(self.active))
+        self.parent.update_cells(self.coordinates, self.state)
 
     def set_state(self, state):
-        if state == State.ACTIVATED:
-            self.active = True
-        else:  # For now, assume only two states
-            self.active = False
+        if hasattr(state, "dtype"):
+            assert state.dtype == int, state.dtype
+            state = int(state)
+        self.state = state
         self.update_canvas()
         self.update_parent_cell()
-
-    def activate(self):
-        self.set_state(State.ACTIVATED)
-
-    def deactivate(self):
-        self.set_state(State.DEACTIVATED)
+        log.debug("Set state of {} to {}".format(self, state))
 
     def handle_touch(self):
-        if self.active:
-            self.deactivate()
-            log.info("Deactivated {}".format(self))
+        if self.state is States.DEACTIVATED:
+            new_state = self.parent.selected_state
         else:
-            self.activate()
-            log.info("Activated {}".format(self))
+            new_state = States.DEACTIVATED
+        self.set_state(new_state)
 
     def on_touch_down(self, evt):
         if not self.collide_point(*evt.pos):
@@ -79,7 +72,7 @@ class GridCell(Widget):
         if self.collide_point(*evt.ppos):
             # Not moved to this square
             return
-        drag_state = State.ACTIVATED if self.active else State.DEACTIVATED
+        drag_state = "off" if self.state == States.DEACTIVATED else "on"
         if self.parent.drag_state is None:
             self.parent.drag_state = drag_state
         elif self.parent.drag_state != drag_state:
@@ -100,6 +93,7 @@ class DrawableGrid(RelativeLayout):
     rows = NumericProperty(10)
     cols = NumericProperty(10)
     cell_size = NumericProperty(25)
+    selected_state = NumericProperty(States.FIRST)
 
     def __init__(self, *args, **kwargs):
         super(DrawableGrid, self).__init__(*args, **kwargs)
@@ -164,8 +158,11 @@ class DrawableGrid(RelativeLayout):
         else:
             cells = np.array(cells)
         cells.setflags(write=False)
+        assert cells.ndim == 2, cells.ndim
         assert cells.shape == self._cells.shape, "{} != {}".format(
             cells.shape, self._cells.shape)
+        assert cells.dtype == self._cells.dtype, "{} != {}".format(
+            cells.dtype, self._cells.dtype)
         self._cells = cells
         self.update_cell_widgets()
 
