@@ -5,7 +5,7 @@ from kivy.core.window import Window
 from kivy.app import App
 from kivy.uix.floatlayout import FloatLayout
 
-from kivy_grid_cells import DrawableGrid
+from kivy_grid_cells.widgets import DrawableGrid
 
 
 class GridPrototype(App):

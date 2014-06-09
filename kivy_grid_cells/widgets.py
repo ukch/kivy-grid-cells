@@ -92,8 +92,8 @@ class GridCell(Widget):
 
 class DrawableGrid(RelativeLayout):
 
-    rows = NumericProperty(10)
-    cols = NumericProperty(10)
+    rows = NumericProperty()
+    cols = NumericProperty()
     cell_size = NumericProperty(25)
     selected_state = NumericProperty(States.FIRST)
 
