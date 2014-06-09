@@ -38,7 +38,7 @@ class GridCell(Widget):
         self.update_canvas()
 
     def update_canvas(self):
-        self.colour = (Colours.get(self.state))
+        self.colour = (Colours[self.state])
 
     def update_parent_cell(self):
         self.parent.update_cells(self.coordinates, self.state)
