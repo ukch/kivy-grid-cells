@@ -68,10 +68,10 @@ class GridCell(Widget):
     def on_touch_move(self, evt):
         if not self.collide_point(*evt.pos):
             # Not on this square
-            return
+            return super(GridCell, self).on_touch_move(evt)
         if self.collide_point(*evt.ppos):
             # Not moved to this square
-            return
+            return super(GridCell, self).on_touch_move(evt)
         if self.parent.drag_state is None:
             self.parent.drag_state = (
                 self.parent.selected_state
