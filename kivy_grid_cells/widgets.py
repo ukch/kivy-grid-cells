@@ -101,6 +101,12 @@ class DrawableGrid(RelativeLayout):
         super(DrawableGrid, self).__init__(*args, **kwargs)
         self._cells = None
 
+    def cell_coordinates(self, pos, is_absolute=True):
+        if is_absolute:
+            pos = self.to_widget(*pos)
+        return (pos[0] // self.cell_size,
+                pos[1] // self.cell_size)
+
     def init_cells(self):
         if self._cells is not None:
             raise RuntimeError("Cells already initialised!")
@@ -167,11 +173,3 @@ class DrawableGrid(RelativeLayout):
             cells.dtype, self._cells.dtype)
         self._cells = cells
         self.update_cell_widgets()
-
-    @property
-    def rows_adjusted(self):
-        return self.rows * self.cell_size
-
-    @property
-    def cols_adjusted(self):
-        return self.cols * self.cell_size

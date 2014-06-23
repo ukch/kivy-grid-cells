@@ -1,7 +1,7 @@
 #:kivy 1.8.0
 
 <DrawableGrid>:
-    size: self.cols_adjusted, self.rows_adjusted
+    size: self.cols * self.cell_size, self.rows * self.cell_size
 
 <GridCell>:
     canvas:
