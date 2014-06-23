@@ -23,7 +23,9 @@ __all__ = ["GridCell", "DrawableGrid"]
 class GridCell(Widget):
 
     state = NumericProperty(States.DEACTIVATED)
+    border_state = NumericProperty(States.DEACTIVATED)
     colour = ListProperty(Colours[States.DEACTIVATED])
+    border_colour = ListProperty((0, 0, 0, 0))
 
     def __init__(self, cell_size, coordinates):
         self.coordinates = coordinates
@@ -38,7 +40,11 @@ class GridCell(Widget):
         self.update_canvas()
 
     def update_canvas(self):
-        self.colour = (Colours[self.state])
+        self.colour = Colours[self.state]
+        if self.border_state == States.DEACTIVATED:
+            self.border_colour = (0, 0, 0, 0)  # Transparent
+        else:
+            self.border_colour = Colours[self.border_state]
 
     def update_parent_cell(self):
         self.parent.update_cells(self.coordinates, self.state)
@@ -51,6 +57,13 @@ class GridCell(Widget):
         self.update_canvas()
         self.update_parent_cell()
         log.debug("Set state of {} to {}".format(self, state))
+
+    def set_border_state(self, state):
+        if hasattr(state, "dtype"):
+            assert state.dtype == int, state.dtype
+            state = int(state)
+        self.border_state = state
+        self.update_canvas()
 
     def handle_touch(self):
         if self.state == self.parent.selected_state:
@@ -96,6 +109,10 @@ class DrawableGrid(RelativeLayout):
     cols = NumericProperty()
     cell_size = NumericProperty(25)
     selected_state = NumericProperty(States.FIRST)
+    grids = ListProperty()
+    num_grids = NumericProperty(1)
+
+    CELLS_GRID = 0
 
     def __init__(self, *args, **kwargs):
         super(DrawableGrid, self).__init__(*args, **kwargs)
@@ -112,7 +129,11 @@ class DrawableGrid(RelativeLayout):
             raise RuntimeError("Cells already initialised!")
         self._setup_cell_widgets()
         self._cells = np.zeros(dtype=int, shape=(self.cols, self.rows))
-        self._cells.setflags(write=False)
+        self.grids = [self._cells]
+        for num in range(1, self.num_grids):
+            self.grids.append(self._cells.copy())
+        for grid in self.grids:
+            grid.setflags(write=False)
         self.drag_state = None
 
     def _setup_cell_widgets(self):
@@ -130,26 +151,41 @@ class DrawableGrid(RelativeLayout):
                 for cell in row:
                     self.add_widget(cell)
 
-    @property
     @contextmanager
-    def writable_cells(self):
-        """Set self._cells to be writable, then unset it"""
+    def _writable_grid(self, index):
+        """Set self.grids[index] to be writable, then unset it"""
+        grid = self.grids[index]
         try:
-            self._cells.setflags(write=True)
+            grid.setflags(write=True)
             yield
         finally:
-            self._cells.setflags(write=False)
+            grid.setflags(write=False)
             return
+
+    @property
+    def writable_cells(self):
+        return self._writable_grid(index=self.CELLS_GRID)
 
     def update_cells(self, coordinates, state):
         with self.writable_cells:
             self._cells[coordinates] = state
 
+    def set_cell_state(self, cell, y, x):
+        cell.set_state(self.cells[y, x])
+
     def update_cell_widgets(self):
-        cells = self.cells
         for x, row in enumerate(self.cell_widgets):
             for y, cell in enumerate(row):
-                cell.set_state(cells[y, x])
+                self.set_cell_state(cell, y, x)
+
+    def clear_grid(self, index):
+        new_grid = np.zeros_like(self.grids[index])
+        if index == self.CELLS_GRID:
+            # cells property does everything we need
+            self.cells = new_grid
+        else:
+            new_grid.setflags(write=False)
+            self.grids[index] = new_grid
 
     @property
     def cells(self):
@@ -172,4 +208,5 @@ class DrawableGrid(RelativeLayout):
         assert cells.dtype == self._cells.dtype, "{} != {}".format(
             cells.dtype, self._cells.dtype)
         self._cells = cells
+        self.grids[self.CELLS_GRID] = cells
         self.update_cell_widgets()
