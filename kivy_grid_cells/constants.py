@@ -5,13 +5,15 @@ states, simply override these constants.
 """
 
 class States(object):
+    ILLEGAL = -1
     DEACTIVATED = 0
     FIRST = 1
     SECOND = 2
 
 
 Colours = {
-    States.DEACTIVATED: (0.5, 0.5, 0.5, 1),
-    States.FIRST: (1, 1, 1, 1),
-    States.SECOND: (0, 0, 0, 1),
+    States.ILLEGAL: (1, 0, 0, 1),  # Red
+    States.DEACTIVATED: (0.5, 0.5, 0.5, 1),  # Grey
+    States.FIRST: (1, 1, 1, 1),  # Black
+    States.SECOND: (0, 0, 0, 1),  # White
 }
