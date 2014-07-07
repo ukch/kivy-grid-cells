@@ -187,6 +187,11 @@ class DrawableGrid(RelativeLayout):
             new_grid.setflags(write=False)
             self.grids[index] = new_grid
 
+    def clear_grid_for_event(self, grid_index, evt):
+        """ This is designed to be subclassed, so that only part of the grid
+            can be cleared, if so desired. """
+        return self.clear_grid(grid_index)
+
     @property
     def cells(self):
         return self._cells
