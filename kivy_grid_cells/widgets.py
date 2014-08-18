@@ -33,8 +33,6 @@ class GridCell(Widget):
         kwargs = {
             "size_hint": [None, None],
             "size": [cell_size, cell_size],
-            "x": (column_number + 1) * cell_size,
-            "y": (row_number + 1) * cell_size
         }
         super(GridCell, self).__init__(**kwargs)
         self.update_canvas()
@@ -142,8 +140,8 @@ class DrawableGrid(RelativeLayout):
             row = []
             for column_number in xrange(self.cols):
                 cell = GridCell(self.cell_size, (column_number, row_number))
-                cell.y = (row_number + 1) * self.cell_size
-                cell.x = (column_number + 1) * self.cell_size
+                cell.y = (row_number) * self.cell_size
+                cell.x = (column_number) * self.cell_size
                 row.append(cell)
             self.cell_widgets.append(row)
         with self.canvas:
@@ -162,6 +160,10 @@ class DrawableGrid(RelativeLayout):
             grid.setflags(write=False)
             return
 
+    def on_cells_updated(self):
+        """This is a hook to update things when the cells have been updated"""
+        pass
+
     @property
     def writable_cells(self):
         return self._writable_grid(index=self.CELLS_GRID)
@@ -169,6 +171,7 @@ class DrawableGrid(RelativeLayout):
     def update_cells(self, coordinates, state):
         with self.writable_cells:
             self._cells[coordinates] = state
+        self.on_cells_updated()
 
     def set_cell_state(self, cell, y, x):
         cell.set_state(self.cells[y, x])
@@ -214,4 +217,5 @@ class DrawableGrid(RelativeLayout):
             cells.dtype, self._cells.dtype)
         self._cells = cells
         self.grids[self.CELLS_GRID] = cells
+        self.on_cells_updated()
         self.update_cell_widgets()
