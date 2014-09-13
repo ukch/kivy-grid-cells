@@ -38,6 +38,21 @@ class GridCell(Widget):
         self.update_canvas()
 
     def update_canvas(self):
+        """ Update the canvas with the current state of the cell
+
+        >>> cell = GridCell(1, (0, 0))
+        >>> cell.state = States.FIRST
+        >>> cell.update_canvas()
+        >>> cell.colour == list(Colours[States.FIRST])
+        True
+        >>> cell.border_colour
+        [0, 0, 0, 0]
+
+        >>> cell.border_state = States.SECOND
+        >>> cell.update_canvas()
+        >>> cell.border_colour == list(Colours[States.SECOND])
+        True
+        """
         self.colour = Colours[self.state]
         if self.border_state == States.DEACTIVATED:
             self.border_colour = (0, 0, 0, 0)  # Transparent
@@ -48,6 +63,17 @@ class GridCell(Widget):
         self.parent.update_cells(self.coordinates, self.state)
 
     def set_state(self, state):
+        """ Set the fill state of the cell
+
+        >>> import mock
+        >>> cell = GridCell(1, (0, 0))
+        >>> cell.parent = mock.Mock()
+        >>> cell.set_state(States.FIRST)
+        >>> cell.state == States.FIRST
+        True
+        >>> cell.colour == list(Colours[States.FIRST])
+        True
+        """
         if hasattr(state, "dtype"):
             assert state.dtype == int, state.dtype
             state = int(state)
@@ -57,6 +83,17 @@ class GridCell(Widget):
         log.debug("Set state of {} to {}".format(self, state))
 
     def set_border_state(self, state):
+        """ Set the border state of the cell
+
+        >>> cell = GridCell(1, (0, 0))
+        >>> cell.set_border_state(States.FIRST)
+        >>> cell.state == States.DEACTIVATED
+        True
+        >>> cell.colour == list(Colours[States.DEACTIVATED])
+        True
+        >>> cell.border_colour == list(Colours[States.FIRST])
+        True
+        """
         if hasattr(state, "dtype"):
             assert state.dtype == int, state.dtype
             state = int(state)
@@ -64,6 +101,18 @@ class GridCell(Widget):
         self.update_canvas()
 
     def handle_touch(self):
+        """ Flip the cell's state between on and off
+
+        >>> import mock
+        >>> cell = GridCell(1, (0, 0))
+        >>> cell.parent = mock.Mock(selected_state=States.FIRST)
+        >>> new_state = cell.handle_touch()
+        >>> new_state == cell.state == States.FIRST
+        True
+        >>> new_state = cell.handle_touch()
+        >>> new_state == cell.state == States.DEACTIVATED
+        True
+        """
         if self.state == self.parent.selected_state:
             new_state = States.DEACTIVATED
         else:
@@ -119,12 +168,59 @@ class DrawableGrid(RelativeLayout):
         self._cells = None
 
     def cell_coordinates(self, pos, is_absolute=True):
+        """ Determine which cell corresponds to absolute or relative position
+        Arguments:
+            pos; 2-tuple; Position in pixels
+            is_absolute; bool; Is pos an absolute or relative position?
+
+        >>> import mock
+        >>> grid = DrawableGrid(cell_size=5)
+        >>> grid.to_widget = mock.Mock()
+        >>> grid.to_widget.return_value = (111, 111)
+        >>> # Returns calculated value
+        >>> grid.cell_coordinates((26, 35), is_absolute=False)
+        (5, 7)
+        >>> grid.to_widget.called
+        False
+        >>> # Returns mocked value
+        >>> grid.cell_coordinates((26, 35))
+        (22, 22)
+        >>> grid.to_widget.called
+        True
+        """
         if is_absolute:
             pos = self.to_widget(*pos)
         return (pos[0] // self.cell_size,
                 pos[1] // self.cell_size)
 
     def init_cells(self):
+        """ Sets up the grid arrays and the cell widgets
+
+        Simple example:
+        >>> grid = DrawableGrid()
+        >>> grid.init_cells()
+        >>> grid.grids
+        [array([], shape=(0, 0), dtype=int64)]
+        >>> [g.flags.writeable for g in grid.grids]
+        [False]
+        >>> grid.cell_widgets
+        []
+
+        Example with some cells and multiple grids:
+        >>> grid = DrawableGrid(rows=2, cols=1, num_grids=3)
+        >>> grid.init_cells()
+        >>> grid.grids
+        [array([[0, 0]]), array([[0, 0]]), array([[0, 0]])]
+        >>> [g.flags.writeable for g in grid.grids]
+        [False, False, False]
+        >>> grid.cell_widgets
+        [[GridCell<0, 0>], [GridCell<0, 1>]]
+
+        Check that overwriting is forbidden
+        >>> grid.init_cells()
+        Traceback (most recent call last):
+        RuntimeError: Cells already initialised!
+        """
         if self._cells is not None:
             raise RuntimeError("Cells already initialised!")
         self._setup_cell_widgets()
@@ -169,9 +265,34 @@ class DrawableGrid(RelativeLayout):
 
     @property
     def writable_cells(self):
+        """
+        Usage:
+        >>> grid = DrawableGrid()
+        >>> grid.init_cells()
+        >>> grid.cells.flags.writeable
+        False
+        >>> with grid.writable_cells:
+        ...     grid.cells.flags.writeable
+        True
+        >>> grid.cells.flags.writeable
+        False
+        """
         return self._writable_grid(index=self.CELLS_GRID)
 
     def update_cells(self, coordinates, state):
+        """ Set cell state at coordinates.
+        Arguments:
+            coordinates; 2-tuple; Cell coordinates to update
+            state; int; New state for the cell
+
+        >>> grid = DrawableGrid(rows=2, cols=1)
+        >>> grid.init_cells()
+        >>> grid.cells
+        array([[0, 0]])
+        >>> grid.update_cells((0, 0), 1)
+        >>> grid.cells
+        array([[1, 0]])
+        """
         with self.writable_cells:
             self._cells[coordinates] = state
         self.on_cells_updated()
@@ -180,11 +301,33 @@ class DrawableGrid(RelativeLayout):
         cell.set_state(self.cells[y, x])
 
     def update_cell_widgets(self):
+        """ Set each cell widget's state according to the state of the np grid
+
+        >>> grid = DrawableGrid(rows=2, cols=1)
+        >>> grid.init_cells()
+        >>> grid.cells = np.array([[1, 2]])
+        >>> grid.update_cell_widgets()
+        >>> grid.cell_widgets[0][0].state
+        1
+        >>> grid.cell_widgets[1][0].state
+        2
+        """
         for x, row in enumerate(self.cell_widgets):
             for y, cell in enumerate(row):
                 self.set_cell_state(cell, y, x)
 
     def clear_grid(self, index):
+        """ Replace the chosen grid with a zero grid of the same shape
+        Arguments:
+            index; bool; Index of the grid to update
+
+        >>> grid = DrawableGrid(rows=2, cols=1)
+        >>> grid.init_cells()
+        >>> grid.cells = np.array([[1, 2]])
+        >>> grid.clear_grid(0)
+        >>> grid.cells
+        array([[0, 0]])
+        """
         new_grid = np.zeros_like(self.grids[index])
         if index == self.CELLS_GRID:
             # cells property does everything we need
