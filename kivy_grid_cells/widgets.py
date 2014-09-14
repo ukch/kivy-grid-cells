@@ -1,5 +1,4 @@
-import kivy
-kivy.require('1.8.0')
+"""All widgets in the kivy-grid-cells package"""
 
 from contextlib import contextmanager
 import logging
@@ -21,6 +20,8 @@ __all__ = ["GridCell", "DrawableGrid"]
 
 
 class GridCell(Widget):
+
+    """A cell within the grid. This can be activated by clicking it."""
 
     state = NumericProperty(States.DEACTIVATED)
     border_state = NumericProperty(States.DEACTIVATED)
@@ -153,6 +154,8 @@ class GridCell(Widget):
 
 class DrawableGrid(RelativeLayout):
 
+    """A grid of cells that can be in a number of states"""
+
     rows = NumericProperty()
     cols = NumericProperty()
     cell_size = NumericProperty(25)
@@ -169,9 +172,11 @@ class DrawableGrid(RelativeLayout):
 
     def cell_coordinates(self, pos, is_absolute=True):
         """ Determine which cell corresponds to absolute or relative position
-        Arguments:
-            pos; 2-tuple; Position in pixels
-            is_absolute; bool; Is pos an absolute or relative position?
+
+        :param pos: Position in pixels
+        :type pos: 2-tuple
+        :param is_absolute: Is pos an absolute or relative position?
+        :type pos: bool
 
         >>> import mock
         >>> grid = DrawableGrid(cell_size=5)
@@ -197,6 +202,7 @@ class DrawableGrid(RelativeLayout):
         """ Sets up the grid arrays and the cell widgets
 
         Simple example:
+
         >>> grid = DrawableGrid()
         >>> grid.init_cells()
         >>> grid.grids
@@ -207,6 +213,7 @@ class DrawableGrid(RelativeLayout):
         []
 
         Example with some cells and multiple grids:
+
         >>> grid = DrawableGrid(rows=2, cols=1, num_grids=3)
         >>> grid.init_cells()
         >>> grid.grids
@@ -217,6 +224,7 @@ class DrawableGrid(RelativeLayout):
         [[GridCell<0, 0>], [GridCell<0, 1>]]
 
         Check that overwriting is forbidden
+
         >>> grid.init_cells()
         Traceback (most recent call last):
         RuntimeError: Cells already initialised!
@@ -281,9 +289,11 @@ class DrawableGrid(RelativeLayout):
 
     def update_cells(self, coordinates, state):
         """ Set cell state at coordinates.
-        Arguments:
-            coordinates; 2-tuple; Cell coordinates to update
-            state; int; New state for the cell
+
+        :param coordinates: Cell coordinates to update
+        :type coordinates: 2-tuple
+        :param state: New state for the cell
+        :type state: int
 
         >>> grid = DrawableGrid(rows=2, cols=1)
         >>> grid.init_cells()
@@ -318,8 +328,9 @@ class DrawableGrid(RelativeLayout):
 
     def clear_grid(self, index):
         """ Replace the chosen grid with a zero grid of the same shape
-        Arguments:
-            index; bool; Index of the grid to update
+
+        :param index: Index of the grid to update
+        :type index: bool
 
         >>> grid = DrawableGrid(rows=2, cols=1)
         >>> grid.init_cells()
